@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# Check for proper input parameters
+# Filename and folder should both be set
+    files="$1"
+	folder="$2"
+
+
+
+shopt -s nullglob
+
+for f in $1; do
+	echo "/home/lesi/repos/cjpeg-dssim/cjpeg-dssim mozjpeg $f"
+    /home/lesi/repos/cjpeg-dssim/cjpeg-dssim mozjpeg $f
+done
