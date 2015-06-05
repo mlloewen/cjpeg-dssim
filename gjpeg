@@ -9,7 +9,7 @@
 
 shopt -s nullglob
 
-for f in $1; do
-	echo "/home/lesi/repos/cjpeg-dssim/cjpeg-dssim mozjpeg $f"
-    /home/lesi/repos/cjpeg-dssim/cjpeg-dssim mozjpeg $f
-done
+ for f in *.jpg; do
+	echo "/home/lesi/repos/cjpeg-dssim/cjpegd $f $1"
+    /home/lesi/repos/cjpeg-dssim/cjpegd $f $1
+ done

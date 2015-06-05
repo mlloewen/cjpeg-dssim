@@ -18,7 +18,7 @@
 #	* mozjpeg - https://github.com/mozilla/mozjpeg
 #
 # CLI usage example:
-# 	cjpeg-dssim jpegoptim /path/to/input-image.jpg
+# 	cjpegd  /path/to/input-image.jpg
 #
 # Supported encoders:
 #	* jpegoptim
@@ -26,7 +26,66 @@
 #
 ###############################################################################
 
+#Set Script Name variable
+SCRIPT=`basename ${BASH_SOURCE[0]}`
 
+#Initialize variables to default values.
+OPT_D="~/Pictures/compressed"
+
+#Set fonts for Help.
+NORM=`tput sgr0`
+BOLD=`tput bold`
+REV=`tput smso`
+
+#Help function
+function HELP {
+  echo -e \\n"Help documentation for ${BOLD}${SCRIPT}.${NORM}"\\n
+  echo -e "${REV}Basic usage:${NORM} ${BOLD}$SCRIPT file.ext${NORM}"\\n
+  echo "Command line switches are optional. The following switches are recognized."
+  echo "${REV}-d${NORM}  --Sets the value for option ${BOLD}d${NORM}. Default is ${BOLD}D${NORM}."
+  echo -e "${REV}-h${NORM}  --Displays this help message. No further functions are performed."\\n
+  echo -e "Example: ${BOLD}$SCRIPT  -d /dist/images file.jpg${NORM}"\\n
+  exit 1
+}
+
+#Check the number of arguments. If none are passed, print help and exit.
+NUMARGS=$#
+echo -e \\n"Number of arguments: $NUMARGS"
+if [ $NUMARGS -eq 0 ]; then
+  HELP
+fi
+
+### Start getopts code ###
+
+#Parse command line flags
+#If an option should be followed by an argument, it should be followed by a ":".
+#Notice there is no ":" after "h". The leading ":" suppresses error messages from
+#getopts. This is required to get my unrecognized option code to work.
+
+while getopts :d:h FLAG; do
+  case $FLAG in
+    d)  #set option "d"
+      OPT_D=$OPTARG
+      echo "-d used: $OPTARG"
+      echo "OPT_D = $OPT_D"
+      ;;
+    h)  #show help
+      HELP
+      ;;
+    \?) #unrecognized option - show help
+      echo -e \\n"Option -${BOLD}$OPTARG${NORM} not allowed."
+      HELP
+      #If you just want to display a simple error message instead of the full
+      #help, remove the 2 lines above and uncomment the 2 lines below.
+      #echo -e "Use ${BOLD}$SCRIPT -h${NORM} to see the help documentation."\\n
+      #exit 2
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))  #This tells getopts to move on to the next argument.
+
+### End getopts code ###
 
 ###############################################################################
 # SANITY CHECKS
@@ -37,11 +96,12 @@ export LANG=C LC_NUMERIC=C LC_COLLATE=C
 
 # Check for proper input parameters
 # Filename and selected JPEG compressor should both be set
-if [ -z $1 ] || [ -z $2 ]; then
-	echo "Please select a JPEG compression method and input JPEG"
-elif [ -n $1 ] && [ -n $2 ]; then
-	JPEG_COMPRESSION_SELECTION="$1"
-	INPUTFILE="$2"
+if [ -z $1 ]; then
+	echo "Please select a input JPEG"
+    exit 1
+fi
+if [ -n $1 ]; then
+	INPUTFILE="$1"
 else
 	exit 1
 fi
@@ -49,7 +109,15 @@ fi
 # Path and filename retrieval to save the output image
 CLEANFILENAME=${INPUTFILE%.jp*g}
 FILEEXTENSION=${INPUTFILE##*.}
-CLEANPATH="${INPUTFILE%/*}"
+
+if [ -z $2 ]; then
+    CLEANPATH="${INPUTFILE%/*}"
+else
+    CLEANPATH="$2"
+    CLEANPATH="${CLEANPATH%/*}"
+fi
+
+
 # If the JPEG is in the same direcctory, empty the path variable
 # Or if it is set, make sure the path has a trailing slash
 if [ "$CLEANPATH" == "$INPUTFILE" ]; then
@@ -57,8 +125,6 @@ if [ "$CLEANPATH" == "$INPUTFILE" ]; then
 else
 	CLEANPATH="$CLEANPATH/"
 fi
-
-
 
 ###############################################################################
 # CONFIGURABLE RUNTIME VARIABLES
@@ -71,18 +137,19 @@ JPEG_QUALITY_SUMMAND_SUBTRAHEND="20"
 # The dissimilarity range in which we accept a recompressed JPEG image
 DSSIM_LOWER_BOUND="0.014250"
 DSSIM_UPPER_BOUND="0.016500"
+JPEG_COMPRESSION_COMMAND="cjpeg -quality \${__current_jpeg_quality} -dct float \${INPUTFILE}"
 
 # How should the output image name be amended - Leave empty to overwrite
-OUTPUTFILESUFFIX="_dssim"
-
-
+if [ -z $2 ]; then
+    OUTPUTFILESUFFIX="_dssim"
+fi
 
 ###############################################################################
 # MAIN PROGRAM
 ###############################################################################
 
 main () {
-	define_encoder_toolbelt
+#	define_encoder_toolbelt
 	local -i __current_jpeg_quality=$(optimize_quality_level ${INITIAL_JPEG_QUALITY} ${JPEG_QUALITY_SUMMAND_SUBTRAHEND})
 	$(eval ${JPEG_COMPRESSION_COMMAND} > "${CLEANPATH}${CLEANFILENAME##*/}${OUTPUTFILESUFFIX}".${FILEEXTENSION});
 }
