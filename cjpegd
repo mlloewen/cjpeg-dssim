@@ -42,8 +42,21 @@ export LANG=C LC_NUMERIC=C LC_COLLATE=C
 #Set Script Name variable
 SCRIPT=`basename ${BASH_SOURCE[0]}`
 
+###############################################################################
+# CONFIGURABLE RUNTIME VARIABLES
+###############################################################################
+
+# Initial JPEG quality and summand/subtrahend settings to start from
 #Initialize variables to default values.
 OPT_D="~/Pictures/compressed"
+OPT_Q="80"
+INITIAL_JPEG_QUALITY=$OPT_Q
+JPEG_QUALITY_SUMMAND_SUBTRAHEND="20"
+
+# The dissimilarity range in which we accept a recompressed JPEG image
+DSSIM_LOWER_BOUND="0.014250"
+DSSIM_UPPER_BOUND="0.016500"
+JPEG_COMPRESSION_COMMAND="cjpeg -quality \${__current_jpeg_quality} -dct float \${INPUTFILE}"
 
 #Set fonts for Help.
 NORM=`tput sgr0`
@@ -55,7 +68,8 @@ function HELP {
   echo -e \\n"Help documentation for ${BOLD}${SCRIPT}.${NORM}"\\n
   echo -e "${REV}Basic usage:${NORM} ${BOLD}$SCRIPT file.ext${NORM}"\\n
   echo "Command line switches are optional. The following switches are recognized."
-  echo "${REV}-d${NORM}  --Sets the value for option ${BOLD}d${NORM}. Default is ${BOLD}D${NORM}."
+  echo "${REV}-d${NORM}  --Sets the value for output folder ${BOLD}d${NORM}. Default is ${BOLD}$OPT_D${NORM}."
+  echo "${REV}-q${NORM}  --Sets the relative quality of output files ${BOLD}Q${NORM}. Default is ${BOLD}$OPT_Q${NORM}."
   echo -e "${REV}-h${NORM}  --Displays this help message. No further functions are performed."\\n
   echo -e "Example: ${BOLD}$SCRIPT  -d /dist/images file.jpg${NORM}"\\n
   exit 1
@@ -75,12 +89,17 @@ fi
 #Notice there is no ":" after "h". The leading ":" suppresses error messages from
 #getopts. This is required to get my unrecognized option code to work.
 
-while getopts :d:h FLAG; do
+while getopts :d:q:h FLAG; do
   case $FLAG in
     d)  #set option "d"
       OPT_D=$OPTARG
       echo "-d used: $OPTARG"
       echo "OPT_D = $OPT_D"
+      ;;
+    q)  #set option "q"
+      OPT_Q=$OPTARG
+      echo "-q used: $OPTARG"
+      echo "OPT_Q = $OPT_Q"
       ;;
     h)  #show help
       HELP
@@ -99,6 +118,11 @@ done
 shift $((OPTIND-1))  #This tells getopts to move on to the next argument.
 
 ### End getopts code ###
+## Take Arguments and apply them to aproprite variables for the compressor.
+INITIAL_JPEG_QUALITY=$OPT_Q
+CLEANPATH="${OPT_D%/*}"
+CLEANPATH="$CLEANPATH/"
+echo $CLEANPATH
 
 ### Main loop to process files ###
 
@@ -110,14 +134,15 @@ while [ $# -ne 0 ]; do
   FILE=$1
   TEMPFILE=`basename $FILE`
   #TEMPFILE="${FILE##*/}"  #This is another way to get the base file name.
-  FILE_BASE=`echo "${TEMPFILE%.*}"`  #file without extension
-  FILE_EXT="${TEMPFILE##*.}"  #file extension
+  CLEANFILENAME=`echo "${TEMPFILE%.*}"`  #file without extension
+  FILEEXTENSION="${TEMPFILE##*.}"  #file extension
 
-
-#  echo -e \\n"Input file is: $FILE"
-#  echo "File withouth extension is: $FILE_BASE"
-#  echo -e "File extension is: $FILE_EXT"\\n
-#  shift  #Move on to next input file.
+  echo -e \\n"Input file is: $FILE"
+  echo "File withouth extension is: $CLEANFILENAME"
+  echo -e "File extension is: $FILEEXTENSION"\\n
+  echo main
+  main
+  shift  #Move on to next input file.
 done
 
 ### End main loop ###
